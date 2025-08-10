@@ -150,15 +150,15 @@
 
     <div class="flex flex-col h-screen">
         <!-- Header -->
-        <header class="bg-white shadow-md p-3 flex justify-between items-center border-b border-gray-200 z-10">
+        <header class="bg-white shadow-md p-3 flex justify-between items-center border-b border-gray-200 z-10 flex-shrink-0">
             <h1 class="text-xl font-semibold text-gray-800">Markdown Editor</h1>
         </header>
 
         <!-- Main Content: Editor and Preview Panes -->
-        <main class="flex-grow grid grid-cols-1 md:grid-cols-2 overflow-y-auto">
+        <main class="flex-grow grid grid-cols-1 md:grid-cols-2 overflow-hidden">
             <!-- Editor Pane -->
-            <div id="editor-container" class="h-full flex flex-col">
-                <div id="editor-toolbar" class="p-2 flex items-center space-x-2 flex-wrap border-b">
+            <div id="editor-container" class="h-full flex flex-col overflow-hidden">
+                <div id="editor-toolbar" class="p-2 flex items-center space-x-2 flex-wrap border-b flex-shrink-0">
                     <!-- File Buttons -->
                     <button id="new-btn" class="toolbar-btn" title="New File">New</button>
                     <button id="open-btn" class="toolbar-btn" title="Open File">Open</button>
@@ -190,12 +190,12 @@
                     <div class="flex-grow"></div>
                     <button id="editor-theme-btn" class="toolbar-btn" title="Toggle Editor Theme">🎨</button>
                 </div>
-                <textarea id="editor" class="flex-grow p-4 w-full h-full"></textarea>
+                <textarea id="editor" class="flex-grow p-4 w-full h-full overflow-y-auto"></textarea>
             </div>
 
             <!-- Preview Pane -->
-            <div id="preview-container" class="h-full flex flex-col border-l border-gray-300">
-                 <div id="preview-header" class="p-2 flex justify-between items-center font-semibold border-b border-gray-200">
+            <div id="preview-container" class="h-full flex flex-col border-l border-gray-300 overflow-hidden">
+                 <div id="preview-header" class="p-2 flex justify-between items-center font-semibold border-b border-gray-200 flex-shrink-0">
                     <span>Preview</span>
                     <button id="preview-theme-btn" class="toolbar-btn" title="Toggle Preview Theme">🎨</button>
                 </div>
@@ -418,6 +418,37 @@ Tables are great for organizing data.
         previewThemeBtn.addEventListener('click', () => {
             previewContainer.classList.toggle('preview-dark');
             localStorage.setItem('previewTheme', previewContainer.classList.contains('preview-dark') ? 'dark' : 'light');
+        });
+        
+        // --- Scroll Sync Logic ---
+        let activePanel = null;
+
+        editor.addEventListener('mouseenter', () => {
+            activePanel = editor;
+        });
+
+        preview.addEventListener('mouseenter', () => {
+            activePanel = preview;
+        });
+
+        editor.addEventListener('scroll', () => {
+            if (activePanel !== editor || (editor.scrollHeight <= editor.clientHeight)) return;
+            const scrollPercentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+            const previewScrollTop = scrollPercentage * (preview.scrollHeight - preview.clientHeight);
+            
+            if (!isNaN(previewScrollTop)) {
+                preview.scrollTop = previewScrollTop;
+            }
+        });
+
+        preview.addEventListener('scroll', () => {
+            if (activePanel !== preview || (preview.scrollHeight <= preview.clientHeight)) return;
+            const scrollPercentage = preview.scrollTop / (preview.scrollHeight - preview.clientHeight);
+            const editorScrollTop = scrollPercentage * (editor.scrollHeight - editor.clientHeight);
+            
+            if (!isNaN(editorScrollTop)) {
+                editor.scrollTop = editorScrollTop;
+            }
         });
 
         // --- Initial Setup ---
