@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor with Live Preview</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- marked.js for Markdown to HTML conversion -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for a better look and feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* --- Editor Panel Theming --- */
+        #editor-container {
+            --editor-bg: #ffffff;
+            --editor-text: #111827;
+            --toolbar-bg: #ffffff;
+            --toolbar-text: #4b5563;
+            --toolbar-hover: #e5e7eb;
+            --toolbar-separator: #d1d5db;
+        }
+        #editor-container.editor-dark {
+            --editor-bg: #1f2937;
+            --editor-text: #d1d5db;
+            --toolbar-bg: #1f2937;
+            --toolbar-text: #d1d5db;
+            --toolbar-hover: #4b5563;
+            --toolbar-separator: #4b5563;
+        }
+        #editor-toolbar {
+            background-color: var(--toolbar-bg);
+            color: var(--toolbar-text);
+            border-color: var(--toolbar-separator);
+        }
+        .toolbar-btn {
+            color: var(--toolbar-text);
+        }
+        .toolbar-btn:hover {
+            background-color: var(--toolbar-hover);
+        }
+        .toolbar-separator {
+            background-color: var(--toolbar-separator);
+        }
+        #editor {
+            background-color: var(--editor-bg);
+            color: var(--editor-text);
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        /* --- Preview Panel Theming --- */
+        #preview-container {
+            --preview-bg: #ffffff;
+            --preview-text: #111827;
+            --preview-border: #e5e7eb;
+            --preview-header-bg: #f9fafb;
+            --preview-blockquote-text: #6b7280;
+            --preview-blockquote-border: #d1d5db;
+            --preview-code-bg: #e5e7eb;
+            --preview-pre-bg: #1f2937;
+            --preview-pre-text: #e5e7eb;
+        }
+        #preview-container.preview-dark {
+            --preview-bg: #111827;
+            --preview-text: #d1d5db;
+            --preview-border: #374151;
+            --preview-header-bg: #1f2937;
+            --preview-blockquote-text: #9ca3af;
+            --preview-blockquote-border: #4b5563;
+            --preview-code-bg: #374151;
+            --preview-pre-bg: #2d3748;
+            --preview-pre-text: #e2e8f0;
+        }
+        #preview-header {
+            background-color: var(--preview-header-bg);
+            color: var(--preview-text);
+        }
+        #preview {
+            background-color: var(--preview-bg);
+            color: var(--preview-text);
+            overflow-y: auto;
+        }
+        #preview h1, #preview h2, #preview h3, #preview h4, #preview h5, #preview h6 {
+            border-bottom: 1px solid var(--preview-border);
+            padding-bottom: 0.3em;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        #preview h1 { font-size: 2em; font-weight: 600; }
+        #preview h2 { font-size: 1.5em; font-weight: 600; }
+        #preview h3 { font-size: 1.25em; font-weight: 600; }
+        #preview p { margin-bottom: 1rem; line-height: 1.6; }
+        #preview a { color: #3b82f6; text-decoration: none; }
+        #preview a:hover { text-decoration: underline; }
+        #preview code {
+            background-color: var(--preview-code-bg);
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            border-radius: 6px;
+        }
+        #preview pre {
+            background-color: var(--preview-pre-bg);
+            color: var(--preview-pre-text);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        #preview pre code { background-color: transparent; padding: 0; }
+        #preview blockquote {
+            padding-left: 1em;
+            color: var(--preview-blockquote-text);
+            border-left: 0.25em solid var(--preview-blockquote-border);
+            margin-left: 0;
+        }
+        #preview ul, #preview ol { padding-left: 2em; margin-bottom: 1rem; }
+        #preview li { margin-bottom: 0.25rem; }
+        #preview table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        #preview th, #preview td { border: 1px solid var(--preview-border); padding: 0.5rem 0.75rem; }
+        #preview th { font-weight: 600; background-color: var(--preview-header-bg); }
+        #preview img { max-width: 100%; height: auto; border-radius: 8px; }
+
+        /* --- General & Toolbar Styles --- */
+        .toolbar-btn {
+            padding: 0.375rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+            font-weight: bold;
+            min-width: 2rem;
+            text-align: center;
+        }
+        .toolbar-separator {
+            width: 1px;
+            height: 1.25rem;
+            margin: 0 0.25rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-md p-3 flex justify-between items-center border-b border-gray-200 z-10">
+            <h1 class="text-xl font-semibold text-gray-800">Markdown Editor</h1>
+        </header>
+
+        <!-- Main Content: Editor and Preview Panes -->
+        <main class="flex-grow grid grid-cols-1 md:grid-cols-2 overflow-y-auto">
+            <!-- Editor Pane -->
+            <div id="editor-container" class="h-full flex flex-col">
+                <div id="editor-toolbar" class="p-2 flex items-center space-x-2 flex-wrap border-b">
+                    <!-- File Buttons -->
+                    <button id="new-btn" class="toolbar-btn" title="New File">New</button>
+                    <button id="open-btn" class="toolbar-btn" title="Open File">Open</button>
+                    <button id="save-btn" class="toolbar-btn" title="Save File">Save</button>
+                    <input type="file" id="file-input" class="hidden" accept=".md,.txt">
+                    <div class="toolbar-separator"></div>
+                    <!-- Formatting Buttons -->
+                    <button id="bold-btn" class="toolbar-btn" title="Bold">B</button>
+                    <button id="italic-btn" class="toolbar-btn" title="Italic" style="font-style: italic;">I</button>
+                    <button id="underline-btn" class="toolbar-btn" title="Underline" style="text-decoration: underline;">U</button>
+                    <div class="toolbar-separator"></div>
+                    <button id="h1-btn" class="toolbar-btn" title="H1">H1</button>
+                    <button id="h2-btn" class="toolbar-btn" title="H2">H2</button>
+                    <button id="h3-btn" class="toolbar-btn" title="H3">H3</button>
+                    <div class="toolbar-separator"></div>
+                    <button id="code-btn" class="toolbar-btn" title="Code">&lt;/&gt;</button>
+                    <button id="quote-btn" class="toolbar-btn" title="Blockquote">”</button>
+                    <button id="hr-btn" class="toolbar-btn" title="Horizontal Rule">—</button>
+                    <div class="toolbar-separator"></div>
+                    <button id="ul-btn" class="toolbar-btn" title="Bulleted List">●</button>
+                    <button id="ol-btn" class="toolbar-btn" title="Numbered List">1.</button>
+                    <div class="toolbar-separator"></div>
+                    <button id="link-btn" class="toolbar-btn" title="Insert Link">🔗</button>
+                    <button id="image-btn" class="toolbar-btn" title="Insert Image">🖼️</button>
+                    <button id="table-btn" class="toolbar-btn" title="Insert Table">▦</button>
+                    <div class="toolbar-separator"></div>
+                    <button id="clear-btn" class="toolbar-btn" title="Clear Formatting">⌫</button>
+                    <!-- Editor Theme Toggle -->
+                    <div class="flex-grow"></div>
+                    <button id="editor-theme-btn" class="toolbar-btn" title="Toggle Editor Theme">🎨</button>
+                </div>
+                <textarea id="editor" class="flex-grow p-4 w-full h-full"></textarea>
+            </div>
+
+            <!-- Preview Pane -->
+            <div id="preview-container" class="h-full flex flex-col border-l border-gray-300">
+                 <div id="preview-header" class="p-2 flex justify-between items-center font-semibold border-b border-gray-200">
+                    <span>Preview</span>
+                    <button id="preview-theme-btn" class="toolbar-btn" title="Toggle Preview Theme">🎨</button>
+                </div>
+                <div id="preview" class="flex-grow p-6 w-full h-full"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // DOM Elements
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const editorContainer = document.getElementById('editor-container');
+        const previewContainer = document.getElementById('preview-container');
+        
+        // Toolbar buttons
+        const newBtn = document.getElementById('new-btn');
+        const openBtn = document.getElementById('open-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const fileInput = document.getElementById('file-input');
+        const boldBtn = document.getElementById('bold-btn');
+        const italicBtn = document.getElementById('italic-btn');
+        const underlineBtn = document.getElementById('underline-btn');
+        const h1Btn = document.getElementById('h1-btn');
+        const h2Btn = document.getElementById('h2-btn');
+        const h3Btn = document.getElementById('h3-btn');
+        const codeBtn = document.getElementById('code-btn');
+        const quoteBtn = document.getElementById('quote-btn');
+        const hrBtn = document.getElementById('hr-btn');
+        const ulBtn = document.getElementById('ul-btn');
+        const olBtn = document.getElementById('ol-btn');
+        const linkBtn = document.getElementById('link-btn');
+        const imageBtn = document.getElementById('image-btn');
+        const tableBtn = document.getElementById('table-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const editorThemeBtn = document.getElementById('editor-theme-btn');
+        const previewThemeBtn = document.getElementById('preview-theme-btn');
+
+        const initialContent = `# Markdown Editor Showcase
+This document demonstrates all the features of this editor. Use the toolbar above to try them out!
+
+---
+
+## Text Formatting
+You can make text **bold**, *italic*, or even <u>underlined</u>. Combine them for ***<u>emphasis</u>***!
+
+## Document Structure
+
+### Headings
+This is an H3. The title above is an H2, and the main title is an H1.
+
+### Blockquotes
+> "The only way to do great work is to love what you do." 
+> \- Steve Jobs
+
+### Horizontal Rule
+The line above and below this text is a horizontal rule, great for separating sections.
+
+---
+
+## Lists
+
+### Unordered List
+- Item 1
+- Item 2
+  - Sub-item 2.1
+  - Sub-item 2.2
+
+### Ordered List
+1. First step
+2. Second step
+3. Third step
+
+## Code Blocks
+You can have inline code like \`const x = 10;\` within a sentence.
+Or you can have a full code block:
+\`\`\`javascript
+function greet(name) {
+  // Returns a greeting string
+  return \`Hello, \${name}!\`;
+}
+console.log(greet('World'));
+\`\`\`
+
+## Links and Images
+Here is a [link to Google](https://www.google.com).
+And here is a placeholder image:
+![Placeholder Image](https://placehold.co/600x200/7c3aed/ffffff?text=Awesome+Image)
+
+## Tables
+Tables are great for organizing data.
+
+| Feature         | Status      | Priority |
+|-----------------|-------------|----------|
+| Toolbar         | Complete    | High     |
+| Live Preview    | Complete    | High     |
+| File Operations | Complete    | Medium   |
+`;
+
+        // --- Core Functions ---
+        function updatePreview() {
+            preview.innerHTML = marked.parse(editor.value, { sanitize: false });
+        }
+        function dispatchInputEvent() {
+            editor.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        }
+        function insertText(textToInsert) {
+            const start = editor.selectionStart;
+            editor.setRangeText(textToInsert, start, start);
+            editor.selectionStart = editor.selectionEnd = start + textToInsert.length;
+            editor.focus();
+            dispatchInputEvent();
+        }
+        function wrapText(prefix, suffix = prefix) {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selectedText = editor.value.substring(start, end);
+            const replacement = prefix + selectedText + suffix;
+            editor.setRangeText(replacement, start, end);
+            editor.focus();
+            editor.selectionStart = start + prefix.length;
+            editor.selectionEnd = end + prefix.length;
+            dispatchInputEvent();
+        }
+        function applyLinePrefix(prefix) {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const text = editor.value;
+            let lineStart = text.lastIndexOf('\n', start - 1) + 1;
+            let lineEnd = text.indexOf('\n', end);
+            if (lineEnd === -1) lineEnd = text.length;
+            const selectedLinesText = text.substring(lineStart, lineEnd);
+            const lines = selectedLinesText.split('\n');
+            let newText = '';
+            let isNumberedList = /^\d+\.\s/.test(prefix);
+            let number = 1;
+            lines.forEach((line, index) => {
+                let currentPrefix = prefix;
+                if(isNumberedList) {
+                    currentPrefix = `${number}. `;
+                    number++;
+                }
+                newText += currentPrefix + line + (index < lines.length - 1 ? '\n' : '');
+            });
+            editor.setRangeText(newText, lineStart, lineEnd);
+            editor.focus();
+            dispatchInputEvent();
+        }
+
+        // --- Event Listeners ---
+        editor.addEventListener('input', updatePreview);
+
+        newBtn.addEventListener('click', () => {
+            if (editor.value.length > 0 && confirm("Are you sure? Unsaved changes will be lost.")) {
+                editor.value = '';
+                dispatchInputEvent();
+            } else if (editor.value.length === 0) {
+                 editor.value = '';
+                 dispatchInputEvent();
+            }
+        });
+        openBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                editor.value = e.target.result;
+                dispatchInputEvent();
+            };
+            reader.readAsText(file);
+            fileInput.value = '';
+        });
+        saveBtn.addEventListener('click', () => {
+            const blob = new Blob([editor.value], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'document.md';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        boldBtn.addEventListener('click', () => wrapText('**'));
+        italicBtn.addEventListener('click', () => wrapText('*'));
+        underlineBtn.addEventListener('click', () => wrapText('<u>', '</u>'));
+        h1Btn.addEventListener('click', () => applyLinePrefix('# '));
+        h2Btn.addEventListener('click', () => applyLinePrefix('## '));
+        h3Btn.addEventListener('click', () => applyLinePrefix('### '));
+        quoteBtn.addEventListener('click', () => applyLinePrefix('> '));
+        hrBtn.addEventListener('click', () => insertText('\n\n---\n\n'));
+        ulBtn.addEventListener('click', () => applyLinePrefix('- '));
+        olBtn.addEventListener('click', () => applyLinePrefix('1. '));
+        codeBtn.addEventListener('click', () => editor.selectionStart === editor.selectionEnd ? wrapText('`') : wrapText('```\n', '\n```'));
+        linkBtn.addEventListener('click', () => {
+            const url = prompt('Enter link URL:', 'https://');
+            if (url) wrapText('[', `](${url})`);
+        });
+        imageBtn.addEventListener('click', () => {
+            const url = prompt('Enter image URL:', 'https://');
+            if (url) insertText(`![alt text](${url})`);
+        });
+        tableBtn.addEventListener('click', () => insertText(`\n| Header 1 | Header 2 |\n|---|---|\n| Cell 1   | Cell 2   |\n`));
+        clearBtn.addEventListener('click', () => {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            if (start === end) return;
+            const selectedText = editor.value.substring(start, end);
+            const clearedText = selectedText.replace(/([*_~`#\[\]\(\)!>|]|<\/?u>)/g, '');
+            editor.setRangeText(clearedText, start, end);
+            editor.focus();
+            dispatchInputEvent();
+        });
+
+        // --- Theme Toggle Logic ---
+        editorThemeBtn.addEventListener('click', () => {
+            editorContainer.classList.toggle('editor-dark');
+            localStorage.setItem('editorTheme', editorContainer.classList.contains('editor-dark') ? 'dark' : 'light');
+        });
+        previewThemeBtn.addEventListener('click', () => {
+            previewContainer.classList.toggle('preview-dark');
+            localStorage.setItem('previewTheme', previewContainer.classList.contains('preview-dark') ? 'dark' : 'light');
+        });
+
+        // --- Initial Setup ---
+        function initializeThemes() {
+            // Default editor to dark unless 'light' is explicitly saved
+            if (localStorage.getItem('editorTheme') === 'light') {
+                editorContainer.classList.remove('editor-dark');
+            } else {
+                editorContainer.classList.add('editor-dark');
+            }
+            
+            // Default preview to light unless 'dark' is explicitly saved
+            if (localStorage.getItem('previewTheme') === 'dark') {
+                previewContainer.classList.add('preview-dark');
+            }
+        }
+        
+        editor.value = initialContent;
+        updatePreview();
+        initializeThemes();
+
+    </script>
+</body>
+</html>
