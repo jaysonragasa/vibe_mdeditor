@@ -123,7 +123,13 @@
             border-left: 0.25em solid var(--preview-blockquote-border);
             margin-left: 0;
         }
-        #preview ul, #preview ol { padding-left: 2em; margin-bottom: 1rem; }
+        #preview ul, #preview ol {
+            padding-left: 1.5em; 
+            margin-bottom: 1rem; 
+            list-style-position: inside;
+        }
+        #preview ul { list-style-type: disc; }
+        #preview ol { list-style-type: decimal; }
         #preview li { margin-bottom: 0.25rem; }
         #preview table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
         #preview th, #preview td { border: 1px solid var(--preview-border); padding: 0.5rem 0.75rem; }
@@ -166,9 +172,9 @@
                     <input type="file" id="file-input" class="hidden" accept=".md,.txt">
                     <div class="toolbar-separator"></div>
                     <!-- Formatting Buttons -->
-                    <button id="bold-btn" class="toolbar-btn" title="Bold">B</button>
-                    <button id="italic-btn" class="toolbar-btn" title="Italic" style="font-style: italic;">I</button>
-                    <button id="underline-btn" class="toolbar-btn" title="Underline" style="text-decoration: underline;">U</button>
+                    <button id="bold-btn" class="toolbar-btn" title="Bold (Ctrl+B)">B</button>
+                    <button id="italic-btn" class="toolbar-btn" title="Italic (Ctrl+I)" style="font-style: italic;">I</button>
+                    <button id="underline-btn" class="toolbar-btn" title="Underline (Ctrl+U)" style="text-decoration: underline;">U</button>
                     <div class="toolbar-separator"></div>
                     <button id="h1-btn" class="toolbar-btn" title="H1">H1</button>
                     <button id="h2-btn" class="toolbar-btn" title="H2">H2</button>
@@ -347,6 +353,26 @@ Tables are great for organizing data.
 
         // --- Event Listeners ---
         editor.addEventListener('input', updatePreview);
+
+        editor.addEventListener('keydown', (e) => {
+            // Check for Ctrl or Cmd key
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key.toLowerCase()) {
+                    case 'b':
+                        e.preventDefault();
+                        boldBtn.click();
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        italicBtn.click();
+                        break;
+                    case 'u':
+                        e.preventDefault();
+                        underlineBtn.click();
+                        break;
+                }
+            }
+        });
 
         newBtn.addEventListener('click', () => {
             if (editor.value.length > 0 && confirm("Are you sure? Unsaved changes will be lost.")) {
