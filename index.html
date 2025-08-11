@@ -131,6 +131,13 @@
         #preview ul { list-style-type: disc; }
         #preview ol { list-style-type: decimal; }
         #preview li { margin-bottom: 0.25rem; }
+        #preview ul li:has(input[type="checkbox"]) {
+            list-style-type: none;
+        }
+		#preview ul li input 
+		{
+			margin-right: 0.50rem;
+		}
         #preview table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
         #preview th, #preview td { border: 1px solid var(--preview-border); padding: 0.5rem 0.75rem; }
         #preview th { font-weight: 600; background-color: var(--preview-header-bg); }
@@ -274,6 +281,11 @@ The line above and below this text is a horizontal rule, great for separating se
 1. First step
 2. Second step
 3. Third step
+
+### Task List
+- [x] Finish the project
+- [ ] Start the next feature
+- [ ] Drink coffee
 
 ## Code Blocks
 You can have inline code like \`const x = 10;\` within a sentence.
@@ -424,7 +436,7 @@ Tables are great for organizing data.
             const url = prompt('Enter image URL:', 'https://');
             if (url) insertText(`![alt text](${url})`);
         });
-        tableBtn.addEventListener('click', () => insertText(`\n| Header 1 | Header 2 |\n|---|---|\n| Cell 1   | Cell 2   |\n`));
+        tableBtn.addEventListener('click', () => insertText(`\n| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |\n`));
         clearBtn.addEventListener('click', () => {
             const start = editor.selectionStart;
             const end = editor.selectionEnd;
